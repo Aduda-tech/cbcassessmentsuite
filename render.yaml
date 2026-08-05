@@ -13,13 +13,17 @@ services:
         value: "10000"
       - key: JWT_SECRET
         generateValue: true
+      - key: PUBLIC_URL
+        sync: false
       - key: MPESA_TILL_NUMBER
         sync: false
       - key: ADMIN_PHONE
         sync: false
-      - key: MONTHLY_PRICE
+      - key: TELEGRAM_BOT_TOKEN
         sync: false
-      - key: YEARLY_PRICE
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: APPROVAL_SECRET
         sync: false
       - key: GEMINI_API_KEY
         sync: false

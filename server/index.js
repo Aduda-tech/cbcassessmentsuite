@@ -17,6 +17,8 @@ const APP_CONFIG = {
   mpesaAccountNumber: process.env.MPESA_ACCOUNT_NUMBER || '',
   adminPhone: process.env.ADMIN_PHONE || '0725924995',
   monthlyPrice: process.env.MONTHLY_PRICE || 'KES 500',
+  approvalSecret: process.env.APPROVAL_SECRET || process.env.JWT_SECRET || "cbc-dev-secret",
+  publicUrl: process.env.PUBLIC_URL || ("http://localhost:" + PORT),
   yearlyPrice: process.env.YEARLY_PRICE || 'KES 5,000',
 };
 
@@ -36,10 +38,54 @@ function saveNotifications(list) {
 
 function notifyAdmin(event, details) {
   const notifs = readNotifications();
-  notifs.unshift({ id: 'N_' + Date.now(), event, details, read: false, createdAt: new Date().toISOString() });
+  const entry = { id: "N_" + Date.now(), event, details, read: false, createdAt: new Date().toISOString() };
+  notifs.unshift(entry);
   if (notifs.length > 200) notifs.length = 200;
   saveNotifications(notifs);
-  console.log('[ADMIN NOTIFY] ' + event + ':', JSON.stringify(details));
+  console.log("[ADMIN NOTIFY] " + event + ":", JSON.stringify(details));
+
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+  const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+  if (!telegramToken || !telegramChatId) return;
+
+  const baseUrl = APP_CONFIG.publicUrl.replace(/\/+$/, "");
+  let msg = "\ud83d\udd14 *CBC Assessment Suite*\n";
+
+  if (event === "new_payment") {
+    const subId = details.subId || details.userId || "";
+    const plan = details.plan || "N/A";
+    const code = details.mpesaCode || details.code || "N/A";
+    const email = details.email || "";
+
+    msg += "\ud83d\udcb0 *New M-Pesa Payment!*\n";
+    msg += "Email: " + email + "\n";
+    msg += "Plan: " + plan + "\n";
+    msg += "Code: `" + code + "`\n\n";
+
+    if (subId) {
+      const approveUrl = baseUrl + "/api/admin/quick-approve?subId=" + encodeURIComponent(subId) + "&secret=" + encodeURIComponent(APP_CONFIG.approvalSecret);
+      msg += "\u2b50 [\u2705 CLICK TO APPROVE](" + approveUrl + ")\n";
+    }
+  } else if (event === "payment_approved") {
+    msg += "\u2705 *Payment Approved*\n";
+    msg += "User: " + (details.email || details.schoolName || "N/A") + "\n";
+    msg += "Expires: " + (details.expiresAt ? new Date(details.expiresAt).toLocaleDateString() : "N/A") + "\n";
+  } else {
+    msg += "\ud83d\udce2 *" + event + "*\n" + JSON.stringify(details, null, 2).slice(0, 400);
+  }
+
+  msg += "\n_" + new Date().toLocaleString("en-KE", { timeZone: "Africa/Nairobi" }) + "_";
+
+  fetch("https://api.telegram.org/bot" + telegramToken + "/sendMessage", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: telegramChatId,
+      text: msg,
+      parse_mode: "Markdown",
+      disable_web_page_preview: false,
+    })
+  }).catch(function() {});
 }
 
 // ── Middleware ──
@@ -137,7 +183,7 @@ app.post('/api/subscribe', authMiddleware, (req, res) => {
     if (!sub) return res.status(404).json({ error: 'No subscription found' });
     db.prepare('UPDATE subscriptions SET plan = ?, mpesa_code = ?, status = \'pending\', updated_at = datetime(\'now\') WHERE id = ?')
       .run(plan || sub.plan, mpesaCode, sub.id);
-    notifyAdmin('new_payment', { userId: req.user.userId, plan: plan || sub.plan, mpesaCode });
+    notifyAdmin("new_payment", { subId: sub.id, userId: req.user.userId, plan: plan || sub.plan, mpesaCode, email: req.user.email });
     res.json({ message: 'Payment submitted! You will be activated within a few minutes.', status: 'pending' });
   } catch (err) {
     console.error('Subscribe:', err);
@@ -217,6 +263,41 @@ app.post('/api/admin/deactivate', adminMiddleware, (req, res) => {
     db.prepare('UPDATE subscriptions SET status = \'canceled\', updated_at = datetime(\'now\') WHERE user_id = ? AND status = \'active\'').run(userId);
     res.json({ message: 'User deactivated' });
   } catch (err) { res.status(500).json({ error: 'Failed' }); }
+});
+
+
+// Quick-approve via link (from Telegram notification)
+// GET /api/admin/quick-approve?subId=xxx&secret=yyy&durationDays=30
+app.get("/api/admin/quick-approve", function(req, res) {
+  try {
+    const secret = req.query.secret || "";
+    if (secret !== APP_CONFIG.approvalSecret) {
+      return res.status(401).send("<html><body style=\"font-family:sans-serif;max-width:500px;margin:50px auto;text-align:center\"><h1>\u274c Unauthorized</h1><p>Invalid or missing approval secret.</p></body></html>");
+    }
+    const subId = req.query.subId || "";
+    if (!subId) {
+      return res.status(400).send("<html><body style=\"font-family:sans-serif;max-width:500px;margin:50px auto;text-align:center\"><h1>\u274c Missing subId</h1><p>No subscription ID provided.</p></body></html>");
+    }
+    const db = getDb();
+    const duration = parseInt(req.query.durationDays) || 30;
+    const start = new Date().toISOString();
+    const end = new Date(Date.now() + duration * 86400000).toISOString();
+
+    const sub = db.prepare("SELECT s.*, u.email, u.name FROM subscriptions s JOIN users u ON s.user_id = u.id WHERE s.id = ?").get(subId);
+    if (!sub) {
+      return res.status(404).send("<html><body style=\"font-family:sans-serif;max-width:500px;margin:50px auto;text-align:center\"><h1>\u274c Not Found</h1><p>Subscription not found.</p></body></html>");
+    }
+
+    db.prepare("UPDATE subscriptions SET status = ?, current_period_start = ?, current_period_end = ?, updated_at = datetime(\"now\") WHERE id = ?")
+      .run("active", start, end, subId);
+
+    notifyAdmin("payment_approved", { subId, email: sub.email, name: sub.name, plan: sub.plan, expiresAt: end });
+
+    res.send("<html><head><meta name=\"viewport\" content=\"width=device-width\"><style>body{font-family:-apple-system,sans-serif;max-width:500px;margin:50px auto;text-align:center;background:#0f172a;color:#fff}h1{color:#10b981;font-size:2em}.card{background:#1e293b;border-radius:16px;padding:24px;margin:16px;border:1px solid #334155}p{color:#94a3b8;line-height:1.6}.badge{display:inline-block;background:#10b981;color:#000;padding:4px 12px;border-radius:20px;font-weight:700;font-size:12px}</style></head><body><div class=\"card\"><h1>\u2705 Payment Approved!</h1><div class=\"badge\">" + sub.plan + "</div><p>" + (sub.name || sub.email) + " has been activated for " + duration + " days.</p><p>\ud83d\udcc5 Expires: <b>" + new Date(end).toLocaleDateString("en-KE") + "</b></p><p style=\"font-size:12px;color:#64748b\">The user can now access all features. Refresh the page to see changes.</p></div></body></html>");
+  } catch(e) {
+    console.error("Quick-approve:", e);
+    res.status(500).send("<html><body style=\"font-family:sans-serif;max-width:500px;margin:50px auto;text-align:center\"><h1>\u274c Error</h1><p>" + (e.message || "Something went wrong") + "</p></body></html>");
+  }
 });
 
 // Get pending count (public)
