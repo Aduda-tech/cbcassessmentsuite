@@ -1,0 +1,118 @@
+import { ClassConfig, GradingScaleItem, StudentRaw } from '../types/cbc';
+
+export const STANDARD_GRADING_SCALE: GradingScaleItem[] = [
+  { grade: 'EE1', minMark: 85, maxMark: 100, points: 8, remarks: 'Exceeding Expectations', minTplPoints: 61, maxTplPoints: 72, minTotalMarks: 765, maxTotalMarks: 900, equivalentPct: '85 - 100%' },
+  { grade: 'EE2', minMark: 73, maxMark: 84,  points: 7, remarks: 'Exceeding Expectations', minTplPoints: 52, maxTplPoints: 60, minTotalMarks: 657, maxTotalMarks: 764, equivalentPct: '73 - 84%' },
+  { grade: 'ME1', minMark: 61, maxMark: 72,  points: 6, remarks: 'Meeting Expectations',   minTplPoints: 43, maxTplPoints: 51, minTotalMarks: 549, maxTotalMarks: 656, equivalentPct: '61 - 72%' },
+  { grade: 'ME2', minMark: 50, maxMark: 60,  points: 5, remarks: 'Meeting Expectations',   minTplPoints: 36, maxTplPoints: 42, minTotalMarks: 450, maxTotalMarks: 548, equivalentPct: '50 - 60%' },
+  { grade: 'AE1', minMark: 37, maxMark: 49,  points: 4, remarks: 'Approaching Expectations', minTplPoints: 26, maxTplPoints: 35, minTotalMarks: 333, maxTotalMarks: 449, equivalentPct: '37 - 49%' },
+  { grade: 'AE2', minMark: 25, maxMark: 36,  points: 3, remarks: 'Approaching Expectations', minTplPoints: 18, maxTplPoints: 25, minTotalMarks: 225, maxTotalMarks: 332, equivalentPct: '25 - 36%' },
+  { grade: 'BE1', minMark: 13, maxMark: 24,  points: 2, remarks: 'Below Expectations',       minTplPoints: 9,  maxTplPoints: 17, minTotalMarks: 117, maxTotalMarks: 224, equivalentPct: '13 - 24%' },
+  { grade: 'BE2', minMark: 0,  maxMark: 12,  points: 1, remarks: 'Below Expectations',       minTplPoints: 0,  maxTplPoints: 8,  minTotalMarks: 0,   maxTotalMarks: 116, equivalentPct: '0 - 12%' },
+];
+
+export const SAMPLE_STUDENTS: StudentRaw[] = [
+  { sn: 1, name: "ADLAM ODHIAMBO", gender: "M", school: "CONSO", scores: { MATHS: 24, ENG: 89, KISWAHILI: 60, SCIENCE: 33, AGRIC: 57, SST: 47, CRE: 67, CAS: 56, PRETECH: 66 } },
+  { sn: 2, name: "ALICE AUMA", gender: "F", school: "CONSO", scores: { MATHS: 11, ENG: 65, KISWAHILI: 45, SCIENCE: 22, AGRIC: 54, SST: 20, CRE: 36, CAS: 66, PRETECH: 41 } },
+  { sn: 3, name: "ANGELLA MEVIA", gender: "F", school: "CONSO", scores: { MATHS: 12, ENG: 60, KISWAHILI: 42, SCIENCE: 26, AGRIC: 49, SST: 21, CRE: 59, CAS: 56, PRETECH: 48 } },
+  { sn: 4, name: "ANN CHRISTINE ACHIENG", gender: "F", school: "CONSO", scores: { MATHS: 60, ENG: 79, KISWAHILI: 84, SCIENCE: 50, AGRIC: 77, SST: 60, CRE: 94, CAS: 68, PRETECH: 83 } },
+  { sn: 5, name: "ANTONATE ADOYO OMONDI", gender: "F", school: "CONSO", scores: { MATHS: 22, ENG: 73, KISWAHILI: 80, SCIENCE: 31, AGRIC: 73, SST: 50, CRE: 72, CAS: 70, PRETECH: 64 } },
+  { sn: 6, name: "BEATRICE ADHIAMBO", gender: "F", school: "CONSO", scores: { MATHS: 51, ENG: 80, KISWAHILI: 74, SCIENCE: 51, AGRIC: 77, SST: 59, CRE: 84, CAS: 78, PRETECH: 81 } },
+  { sn: 7, name: "BETHWEL DERICK ODHIAMBO", gender: "M", school: "CONSO", scores: { MATHS: 59, ENG: 91, KISWAHILI: 77, SCIENCE: 50, AGRIC: 80, SST: 54, CRE: 91, CAS: 76, PRETECH: 84 } },
+  { sn: 8, name: "BEYONSE AKINYI OTIENO", gender: "F", school: "CONSO", scores: { MATHS: 26, ENG: 62, KISWAHILI: 66, SCIENCE: 24, AGRIC: 69, SST: 50, CRE: 83, CAS: 54, PRETECH: 76 } },
+  { sn: 9, name: "BLESSED LOICE", gender: "F", school: "CONSO", scores: { MATHS: 40, ENG: 83, KISWAHILI: 61, SCIENCE: 34, AGRIC: 81, SST: 37, CRE: 80, CAS: 72, PRETECH: 76 } },
+  { sn: 10, name: "BRANDON OMONDI", gender: "M", school: "CONSO", scores: { MATHS: 24, ENG: 60, KISWAHILI: 44, SCIENCE: 28, AGRIC: 57, SST: 15, CRE: 34, CAS: 62, PRETECH: 58 } },
+  { sn: 11, name: "BRIGHTON OWINO ODHIAMBO", gender: "M", school: "CONSO", scores: { MATHS: 22, ENG: 62, KISWAHILI: 56, SCIENCE: 31, AGRIC: 66, SST: 31, CRE: 72, CAS: 70, PRETECH: 65 } },
+  { sn: 12, name: "CAMILA ANGELA ACHIENG", gender: "F", school: "CONSO", scores: { MATHS: 24, ENG: 73, KISWAHILI: 58, SCIENCE: 40, AGRIC: 71, SST: 38, CRE: 86, CAS: 68, PRETECH: 71 } },
+  { sn: 13, name: "CHARITY PERIZ OMONDI", gender: "F", school: "CONSO", scores: { MATHS: 80, ENG: 93, KISWAHILI: 81, SCIENCE: 81, AGRIC: 91, SST: 78, CRE: 89, CAS: 74, PRETECH: 91 } },
+  { sn: 14, name: "CHARLES PETER ODHIAMBO", gender: "M", school: "CONSO", scores: { MATHS: 33, ENG: 80, KISWAHILI: 70, SCIENCE: 59, AGRIC: 76, SST: 47, CRE: 83, CAS: 62, PRETECH: 86 } },
+  { sn: 15, name: "CHRISTINE ACHIENG WALWANGA", gender: "F", school: "CONSO", scores: { MATHS: 35, ENG: 90, KISWAHILI: 69, SCIENCE: 56, AGRIC: 81, SST: 66, CRE: 86, CAS: 66, PRETECH: 89 } },
+  { sn: 16, name: "CLIFTON PETER OLUOCH", gender: "M", school: "CONSO", scores: { MATHS: 37, ENG: 91, KISWAHILI: 66, SCIENCE: 60, AGRIC: 80, SST: 48, CRE: 81, CAS: 72, PRETECH: 88 } },
+  { sn: 17, name: "CONSLATE AMONDI ODHIAMBO", gender: "F", school: "CONSO", scores: { MATHS: 29, ENG: 78, KISWAHILI: 71, SCIENCE: 35, AGRIC: 83, SST: 56, CRE: 91, CAS: 70, PRETECH: 74 } },
+  { sn: 18, name: "DAVID BARAKA CHILA", gender: "M", school: "CONSO", scores: { MATHS: 21, ENG: 80, KISWAHILI: 51, SCIENCE: 37, AGRIC: 61, SST: 51, CRE: 73, CAS: 66, PRETECH: 71 } },
+  { sn: 19, name: "DEBRA ACHIENG JUMA", gender: "F", school: "CONSO", scores: { MATHS: 20, ENG: 65, KISWAHILI: 48, SCIENCE: 25, AGRIC: 47, SST: 44, CRE: 65, CAS: 82, PRETECH: 64 } },
+  { sn: 20, name: "DENZIL OTIENO", gender: "M", school: "CONSO", scores: { MATHS: 60, ENG: 92, KISWAHILI: 85, SCIENCE: 69, AGRIC: 81, SST: 69, CRE: 86, CAS: 72, PRETECH: 69 } },
+  { sn: 21, name: "DEOGRATIOUS MELVIN OTIENO", gender: "M", school: "CONSO", scores: { MATHS: 66, ENG: 86, KISWAHILI: 63, SCIENCE: 42, AGRIC: 74, SST: 43, CRE: 79, CAS: 74, PRETECH: 75 } },
+  { sn: 22, name: "DOLPHINE ANYANGO OUKO", gender: "F", school: "CONSO", scores: { MATHS: 27, ENG: 92, KISWAHILI: 65, SCIENCE: 45, AGRIC: 89, SST: 56, CRE: 90, CAS: 70, PRETECH: 84 } },
+  { sn: 23, name: "EDWIN OMONDI", gender: "M", school: "CONSO", scores: { MATHS: 56, ENG: 86, KISWAHILI: 66, SCIENCE: 63, AGRIC: 79, SST: 69, CRE: 89, CAS: 72, PRETECH: 96 } },
+  { sn: 24, name: "ELIZABETH ATIENO", gender: "F", school: "CONSO", scores: { MATHS: 34, ENG: 73, KISWAHILI: 70, SCIENCE: 35, AGRIC: 69, SST: 44, CRE: 75, CAS: 62, PRETECH: 63 } },
+  { sn: 25, name: "ELIZABETH AWUOR", gender: "F", school: "CONSO", scores: { MATHS: 23, ENG: 66, KISWAHILI: 48, SCIENCE: 27, AGRIC: 61, SST: 31, CRE: 68, CAS: 60, PRETECH: 49 } },
+  { sn: 26, name: "ELLY OTIENO", gender: "M", school: "CONSO", scores: { MATHS: 17, ENG: 51, KISWAHILI: 37, SCIENCE: 15, AGRIC: 46, SST: 18, CRE: 40, CAS: 66, PRETECH: 49 } },
+  { sn: 27, name: "ELVIS OWITI OTIENO", gender: "M", school: "CONSO", scores: { MATHS: 10, ENG: 56, KISWAHILI: 41, SCIENCE: 22, AGRIC: 54, SST: 24, CRE: 48, CAS: 70, PRETECH: 60 } },
+  { sn: 28, name: "ESTHER AKINYI", gender: "F", school: "CONSO", scores: { MATHS: 29, ENG: 66, KISWAHILI: 57, SCIENCE: 30, AGRIC: 70, SST: 35, CRE: 48, CAS: 62, PRETECH: 61 } },
+  { sn: 29, name: "EUNES OCHIENG ANGAWA", gender: "M", school: "CONSO", scores: { MATHS: 7, ENG: 35, KISWAHILI: 46, SCIENCE: 36, AGRIC: 77, SST: 47, CRE: 66, CAS: 72, PRETECH: 64 } },
+  { sn: 30, name: "FLORENCE ATIENO JONI", gender: "F", school: "CONSO", scores: { MATHS: 22, ENG: 79, KISWAHILI: 50, SCIENCE: 32, AGRIC: 61, SST: 28, CRE: 54, CAS: 58, PRETECH: 55 } },
+  { sn: 31, name: "FREDDY AYOO", gender: "M", school: "CONSO", scores: { MATHS: 43, ENG: 87, KISWAHILI: 66, SCIENCE: 53, AGRIC: 90, SST: 50, CRE: 91, CAS: 60, PRETECH: 76 } },
+  { sn: 32, name: "GLORIA CHERYL OMONDI", gender: "F", school: "CONSO", scores: { MATHS: 23, ENG: 71, KISWAHILI: 49, SCIENCE: 29, AGRIC: 61, SST: 34, CRE: 70, CAS: 66, PRETECH: 68 } },
+  { sn: 33, name: "GLORIOUS AKINYI", gender: "F", school: "CONSO", scores: { MATHS: 18, ENG: 66, KISWAHILI: 45, SCIENCE: 25, AGRIC: 67, SST: 39, CRE: 75, CAS: 72, PRETECH: 56 } },
+  { sn: 34, name: "GRACE NITA", gender: "F", school: "CONSO", scores: { MATHS: 33, ENG: 77, KISWAHILI: 72, SCIENCE: 39, AGRIC: 70, SST: 49, CRE: 95, CAS: 62, PRETECH: 75 } },
+  { sn: 35, name: "HETCHER HYNES", gender: "F", school: "CONSO", scores: { MATHS: 30, ENG: 74, KISWAHILI: 76, SCIENCE: 29, AGRIC: 71, SST: 50, CRE: 89, CAS: 68, PRETECH: 71 } },
+  { sn: 36, name: "JANE JAEL OTIENO", gender: "F", school: "CONSO", scores: { MATHS: 20, ENG: 70, KISWAHILI: 60, SCIENCE: 29, AGRIC: 67, SST: 23, CRE: 88, CAS: 62, PRETECH: 68 } },
+  { sn: 37, name: "JAYDEN OMOLLO", gender: "M", school: "CONSO", scores: { MATHS: 22, ENG: 71, KISWAHILI: 55, SCIENCE: 37, AGRIC: 56, SST: 37, CRE: 74, CAS: 60, PRETECH: 61 } },
+  { sn: 38, name: "JIMMY ONDORO", gender: "M", school: "CONSO", scores: { MATHS: 29, ENG: 74, KISWAHILI: 56, SCIENCE: 38, AGRIC: 49, SST: 34, CRE: 85, CAS: 70, PRETECH: 45 } },
+  { sn: 39, name: "JOEL SULWE MUJAWA", gender: "M", school: "CONSO", scores: { MATHS: 56, ENG: 90, KISWAHILI: 86, SCIENCE: 70, AGRIC: 74, SST: 84, CRE: 94, CAS: 76, PRETECH: 93 } },
+  { sn: 40, name: "JOHN PAUL OMONDI", gender: "M", school: "CONSO", scores: { MATHS: 44, ENG: 72, KISWAHILI: 58, SCIENCE: 43, AGRIC: 70, SST: 40, CRE: 70, CAS: 76, PRETECH: 81 } },
+  { sn: 41, name: "JOSEPHINE AKOTH", gender: "F", school: "CONSO", scores: { MATHS: 29, ENG: 62, KISWAHILI: 47, SCIENCE: 26, AGRIC: 56, SST: 37, CRE: 66, CAS: 72, PRETECH: 61 } },
+  { sn: 42, name: "JUDY PINTER ODHIAMBO", gender: "F", school: "CONSO", scores: { MATHS: 29, ENG: 78, KISWAHILI: 66, SCIENCE: 39, AGRIC: 74, SST: 40, CRE: 70, CAS: 70, PRETECH: 61 } },
+  { sn: 43, name: "KIMBERLY HOPES PHILIPS", gender: "F", school: "CONSO", scores: { MATHS: 9, ENG: 58, KISWAHILI: 50, SCIENCE: 8, AGRIC: 33, SST: 7, CRE: 26, CAS: 56, PRETECH: 43 } },
+  { sn: 44, name: "KWAN ALEXANDAH ONYANGO", gender: "M", school: "CONSO", scores: { MATHS: 21, ENG: 71, KISWAHILI: 33, SCIENCE: 36, AGRIC: 69, SST: 35, CRE: 68, CAS: 64, PRETECH: 66 } },
+  { sn: 45, name: "LENIN RANAN", gender: "M", school: "CONSO", scores: { MATHS: 48, ENG: 83, KISWAHILI: 60, SCIENCE: 63, AGRIC: 77, SST: 35, CRE: 90, CAS: 72, PRETECH: 65 } },
+  { sn: 46, name: "LEORNIDA AUMA ODONGO", gender: "F", school: "CONSO", scores: { MATHS: 26, ENG: 69, KISWAHILI: 51, SCIENCE: 30, AGRIC: 61, SST: 28, CRE: 80, CAS: 60, PRETECH: 69 } },
+  { sn: 47, name: "LINET ACHIENG OMONDI", gender: "F", school: "CONSO", scores: { MATHS: 7, ENG: 59, KISWAHILI: 48, SCIENCE: 26, AGRIC: 56, SST: 29, CRE: 42, CAS: 64, PRETECH: 44 } },
+  { sn: 48, name: "LOUREEN ADHIAMBO", gender: "F", school: "CONSO", scores: { MATHS: 18, ENG: 77, KISWAHILI: 47, SCIENCE: 27, AGRIC: 60, SST: 22, CRE: 82, CAS: 66, PRETECH: 70 } },
+  { sn: 49, name: "MACKLINE PAULINE", gender: "F", school: "CONSO", scores: { MATHS: 17, ENG: 55, KISWAHILI: 51, SCIENCE: 34, AGRIC: 61, SST: 34, CRE: 65, CAS: 60, PRETECH: 46 } },
+  { sn: 50, name: "MALIA AMANDA", gender: "F", school: "CONSO", scores: { MATHS: 47, ENG: 80, KISWAHILI: 63, SCIENCE: 36, AGRIC: 56, SST: 50, CRE: 81, CAS: 74, PRETECH: 69 } },
+  { sn: 51, name: "SIDANDI SIENNAH KHALSI", gender: "F", school: "CONSO", scores: { MATHS: 83, ENG: 91, KISWAHILI: 86, SCIENCE: 88, AGRIC: 93, SST: 74, CRE: 91, CAS: 76, PRETECH: 96 } },
+  { sn: 52, name: "VINCENT OMONDI", gender: "M", school: "CONSO", scores: { MATHS: 21, ENG: 61, KISWAHILI: 55, SCIENCE: 29, AGRIC: 54, SST: 34, CRE: 81, CAS: 50, PRETECH: 68 } },
+  { sn: 53, name: "CHARLES OUMA", gender: "M", school: "OLAGO", scores: { MATHS: 13, ENG: 58, KISWAHILI: 48, SCIENCE: 17, AGRIC: 43, SST: 22, CRE: 26, CAS: 72, PRETECH: 43 } },
+  { sn: 54, name: "CHRISTINE ATIENO OCHIENG", gender: "F", school: "OLAGO", scores: { MATHS: 13, ENG: 50, KISWAHILI: 46, SCIENCE: 14, AGRIC: 43, SST: 18, CRE: 28, CAS: 48, PRETECH: 44 } },
+  { sn: 55, name: "EDAH AKINYI ADORI", gender: "F", school: "OLAGO", scores: { MATHS: 11, ENG: 51, KISWAHILI: 56, SCIENCE: 15, AGRIC: 40, SST: 18, CRE: 35, CAS: 54, PRETECH: 39 } },
+  { sn: 56, name: "ELVIS OMONDI ABONYO", gender: "M", school: "OLAGO", scores: { MATHS: 11, ENG: 43, KISWAHILI: 42, SCIENCE: 16, AGRIC: 24, SST: 19, CRE: 15, CAS: 56, PRETECH: 17 } },
+  { sn: 57, name: "EVERLYNE AKINYI OCHIENG", gender: "F", school: "OLAGO", scores: { MATHS: 24, ENG: 63, KISWAHILI: 65, SCIENCE: 32, AGRIC: 69, SST: 45, CRE: 88, CAS: 56, PRETECH: 49 } },
+  { sn: 58, name: "JAMES OMONDI", gender: "M", school: "OLAGO", scores: { MATHS: 21, ENG: 68, KISWAHILI: 48, SCIENCE: 27, AGRIC: 71, SST: 31, CRE: 69, CAS: 54, PRETECH: 50 } },
+  { sn: 59, name: "ANAKLET BAHATI", gender: "F", school: "RABANGO", scores: { MATHS: 20, ENG: 56, KISWAHILI: 30, SCIENCE: 28, AGRIC: 53, SST: 24, CRE: 50, CAS: 42, PRETECH: 55 } },
+  { sn: 60, name: "ANASTACIA ADHIAMBO", gender: "F", school: "RABANGO", scores: { MATHS: 8, ENG: 60, KISWAHILI: 38, SCIENCE: 25, AGRIC: 61, SST: 12, CRE: 50, CAS: 32, PRETECH: 65 } },
+  { sn: 61, name: "CINDY MONICA", gender: "F", school: "RABANGO", scores: { MATHS: 4, ENG: 42, KISWAHILI: 29, SCIENCE: 10, AGRIC: 21, SST: 6, CRE: 10, CAS: 22, PRETECH: 23 } },
+  { sn: 62, name: "FRANCIS OTIENO", gender: "M", school: "RABANGO", scores: { MATHS: 12, ENG: 25, KISWAHILI: 30, SCIENCE: 13, AGRIC: 23, SST: 7, CRE: 9, CAS: 24, PRETECH: 16 } },
+  { sn: 63, name: "GEORGE MORGAN", gender: "M", school: "RABANGO", scores: { MATHS: 6, ENG: 40, KISWAHILI: 38, SCIENCE: 21, AGRIC: 41, SST: 12, CRE: 20, CAS: 40, PRETECH: 43 } },
+  { sn: 64, name: "SAMUEL OMONDI", gender: "M", school: "RABANGO", scores: { MATHS: 8, ENG: 53, KISWAHILI: 29, SCIENCE: 26, AGRIC: 43, SST: 21, CRE: 32, CAS: 40, PRETECH: 48 } },
+  { sn: 65, name: "STANLEY ODHIAMBO OCHIENG", gender: "M", school: "RABANGO", scores: { MATHS: 10, ENG: 58, KISWAHILI: 34, SCIENCE: 23, AGRIC: 52, SST: 13, CRE: 38, CAS: 34, PRETECH: 33 } },
+  { sn: 66, name: "BRAVEL ONYANGO", gender: "G", school: "MI'YANDHE", scores: { MATHS: 6, ENG: 37, KISWAHILI: 30, SCIENCE: 14, AGRIC: 19, SST: 19, CRE: 15, CAS: 18, PRETECH: 18 } },
+  { sn: 67, name: "CLIFFORD ODHIAMBO", gender: "M", school: "MI'YANDHE", scores: { MATHS: 15, ENG: 66, KISWAHILI: 28, SCIENCE: 11, AGRIC: 36, SST: 19, CRE: 18, CAS: 32, PRETECH: 43 } },
+  { sn: 68, name: "DJIBRIL OTIENO OYIER", gender: "M", school: "MI'YANDHE", scores: { MATHS: 7, ENG: 51, KISWAHILI: 32, SCIENCE: 6, AGRIC: 37, SST: 20, CRE: 23, CAS: 40, PRETECH: 34 } },
+  { sn: 69, name: "ELISHA OWINO OTIENO", gender: "M", school: "MI'YANDHE", scores: { MATHS: 10, ENG: 70, KISWAHILI: 52, SCIENCE: 18, AGRIC: 43, SST: 37, CRE: 53, CAS: 52, PRETECH: 58 } },
+  { sn: 70, name: "EVERLYNE AKOTH", gender: "F", school: "MI'YANDHE", scores: { MATHS: 8, ENG: 60, KISWAHILI: 37, SCIENCE: 11, AGRIC: 30, SST: 28, CRE: 30, CAS: 60, PRETECH: 53 } }
+].map(s => ({
+  ...s,
+  gender: (s.gender === 'M' || s.gender === 'F' ? s.gender : 'M') as 'M' | 'F'
+}));
+
+export const INITIAL_CLASSES: ClassConfig[] = [
+  {
+    id: "grade-7-nango",
+    className: "Grade 7 - Nango Zone",
+    examName: "NANGO ZONE JS ASSESSMENT",
+    termDetails: "COMPETENCY BASED ASSESSMENT — TERM TWO 2026",
+    schoolName: "NANGO ZONE JUNIOR SCHOOLS",
+    motto: "Excellence Through Competency",
+    topPerformersCount: 3,
+    students: SAMPLE_STUDENTS
+  },
+  {
+    id: "grade-8-nango",
+    className: "Grade 8 - East Stream",
+    examName: "NANGO ZONE JS ASSESSMENT",
+    termDetails: "COMPETENCY BASED ASSESSMENT — TERM TWO 2026",
+    schoolName: "NANGO ZONE JUNIOR SCHOOLS",
+    motto: "Striving for CBC Mastery",
+    topPerformersCount: 5,
+    students: SAMPLE_STUDENTS.slice(0, 30).map(s => ({
+      ...s,
+      scores: {
+        ...s.scores,
+        MATHS: Math.min(100, s.scores.MATHS + 10),
+        ENG: Math.min(100, s.scores.ENG + 5)
+      }
+    }))
+  }
+];

@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: cbc-assessment-suite
+    env: node
+    region: frankfurt
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MPESA_TILL_NUMBER
+        sync: false
+      - key: ADMIN_PHONE
+        sync: false
+      - key: MONTHLY_PRICE
+        sync: false
+      - key: YEARLY_PRICE
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        value: "*"
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
