@@ -1,0 +1,165 @@
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..88227eb
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,6 @@
++node_modules/
++dist/
++data/
++*.db
++.env
++package-lock.json
+diff --git a/server/index.js b/server/index.js
+index 8c01691..6b93198 100644
+--- a/server/index.js
++++ b/server/index.js
+@@ -2,6 +2,7 @@ import express from 'express';
+ import cors from 'cors';
+ import path from 'path';
+ import { fileURLToPath } from 'url';
++import fs from 'fs';
+ import { getDb, hashPassword, verifyPassword, generateId } from './db.js';
+ import { signToken, authMiddleware, adminMiddleware } from './auth.js';
+ 
+@@ -19,6 +20,29 @@ const APP_CONFIG = {
+   yearlyPrice: process.env.YEARLY_PRICE || 'KES 5,000',
+ };
+ 
++// ── Notification System ──
++const NOTIFICATION_FILE = process.env.NOTIFICATION_FILE || path.join(__dirname, "..", "data", "admin_notifications.json");
++
++function readNotifications() {
++  try { return fs.existsSync(NOTIFICATION_FILE) ? JSON.parse(fs.readFileSync(NOTIFICATION_FILE, "utf8")) : []; }
++  catch { return []; }
++}
++
++function saveNotifications(list) {
++  const dir = path.dirname(NOTIFICATION_FILE);
++  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
++  fs.writeFileSync(NOTIFICATION_FILE, JSON.stringify(list, null, 2), "utf-8");
++}
++
++function notifyAdmin(event, details) {
++  const notifs = readNotifications();
++  notifs.unshift({ id: "N_" + Date.now(), event, details, read: false, createdAt: new Date().toISOString() });
++  if (notifs.length > 200) notifs.length = 200;
++  saveNotifications(notifs);
++  console.log("[ADMIN NOTIFY] " + event + ":", JSON.stringify(details));
++}
++
++
+ // ── Middleware ──
+ app.use(express.json());
+ app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
+@@ -122,6 +146,7 @@ app.post('/api/subscribe', authMiddleware, (req, res) => {
+ 
+     db.prepare(`UPDATE subscriptions SET plan = ?, mpesa_code = ?, status = 'pending', updated_at = datetime('now') WHERE id = ?`)
+       .run(plan || sub.plan, mpesaCode, sub.id);
++    notifyAdmin("new_payment", { userId: req.user.userId, plan: plan || sub.plan, mpesaCode });
+ 
+     res.json({ message: 'Payment submitted! Your account will be activated within a few minutes after verification.', status: 'pending' });
+   } catch (err) {
+@@ -224,6 +249,64 @@ app.post('/api/admin/deactivate', adminMiddleware, (req, res) => {
+   }
+ });
+ 
++
++// Get pending Till payment count (public — used for badge)
++app.get("/api/subscription/pending-count", async (_req, res) => {
++  try {
++    const db = getDb();
++    const count = db.prepare("SELECT COUNT(*) as cnt FROM subscriptions WHERE status = ?").get("pending")?.cnt || 0;
++    res.json({ success: true, pendingCount: count });
++  } catch (e) { res.status(500).json({ error: e.message }); }
++});
++
++// Admin: list pending Till payments
++app.post("/api/admin/till-list", authMiddleware, (req, res) => {
++  try {
++    if (req.user.role !== "admin") return res.status(403).json({ error: "Admin access required" });
++    const db = getDb();
++    const pending = db.prepare("SELECT u.email, u.name, u.school_name, u.phone, s.id as sub_id, s.plan, s.status, s.mpesa_code, s.created_at FROM subscriptions s JOIN users u ON s.user_id = u.id WHERE s.status = ? AND s.mpesa_code IS NOT NULL ORDER BY s.created_at DESC").all("pending");
++    res.json({ success: true, pending, count: pending.length });
++  } catch (e) { res.status(500).json({ error: e.message }); }
++});
++
++// Admin: approve Till payment and issue license
++app.post("/api/admin/till-approve", authMiddleware, (req, res) => {
++  try {
++    if (req.user.role !== "admin") return res.status(403).json({ error: "Admin access required" });
++    const { subId, durationDays, notes } = req.body;
++    if (!subId) return res.status(400).json({ error: "subId required" });
++    const db = getDb();
++    const duration = durationDays || 30;
++    const start = new Date().toISOString();
++    const end = new Date(Date.now() + duration * 86400000).toISOString();
++    db.prepare(`UPDATE subscriptions SET status = ?, current_period_start = ?, current_period_end = ?, admin_notes = ?, activated_by = ?, updated_at = datetime("now") WHERE id = ?`)
++      .run("active", start, end, notes || "", req.user.userId, subId);
++    const sub = db.prepare("SELECT u.name, u.email, u.school_name FROM subscriptions s JOIN users u ON s.user_id = u.id WHERE s.id = ?").get(subId);
++    notifyAdmin("payment_approved", { subId, schoolName: sub?.school_name, email: sub?.email });
++    res.json({ success: true, message: "Payment approved! License issued.", expiresAt: end });
++  } catch (e) { res.status(500).json({ error: e.message }); }
++});
++
++// Admin: get notifications
++app.get("/api/admin/notifications", authMiddleware, (req, res) => {
++  try {
++    if (req.user.role !== "admin") return res.status(403).json({ error: "Admin access required" });
++    res.json({ success: true, notifications: readNotifications() });
++  } catch (e) { res.status(500).json({ error: e.message }); }
++});
++
++// Admin: mark notifications read
++app.post("/api/admin/notifications-read", authMiddleware, (req, res) => {
++  try {
++    if (req.user.role !== "admin") return res.status(403).json({ error: "Admin access required" });
++    const notifs = readNotifications().map(n => ({ ...n, read: true }));
++    saveNotifications(notifs);
++    res.json({ success: true });
++  } catch (e) { res.status(500).json({ error: e.message }); }
++});
++
++// Subscribe endpoint: also fires notification on M-Pesa submission
++
+ // ── Serve React SPA ──
+ const distPath = path.join(__dirname, '..', 'dist');
+ app.use(express.static(distPath));
+diff --git a/src/pages/PricingPage.tsx b/src/pages/PricingPage.tsx
+index d32aa99..0311b39 100644
+--- a/src/pages/PricingPage.tsx
++++ b/src/pages/PricingPage.tsx
+@@ -1,4 +1,4 @@
+-import React, { useState } from 'react';
++import React, { useState, useEffect } from 'react';
+ import { useAuth } from '../contexts/AuthContext';
+ import { FileSpreadsheet, Check, ArrowRight, Smartphone, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
+ 
+@@ -10,7 +10,15 @@ export function PricingPage() {
+   const [message, setMessage] = useState('');
+   const [error, setError] = useState('');
+ 
++const [pendingCount, setPendingCount] = useState(0);
+   const tillNumber = appConfig?.mpesaTillNumber || '123456';
++
++  useEffect(() => {
++    fetch("/api/subscription/pending-count")
++      .then(r => r.json())
++      .then(d => setPendingCount(d.pendingCount || 0))
++      .catch(() => {});
++  }, []);
+   const adminPhone = appConfig?.adminPhone || '0725924995';
+ 
+   const plans = [
+@@ -42,6 +50,11 @@ export function PricingPage() {
+             <div><h1 className="text-lg font-bold text-white">Aduda-Tech</h1><p className="text-xs text-slate-400">CBC Assessment Suite</p></div>
+           </div>
+           <div className="flex items-center gap-3">
++            {pendingCount > 0 && (
++              <span className="px-2.5 py-1 rounded-full bg-rose-600 text-white text-[10px] font-bold animate-pulse">
++                {pendingCount} pending
++              </span>
++            )}
+             {isAuthenticated ? (
+               <><a href="/app" className="text-sm text-slate-300 hover:text-white font-medium">Dashboard</a>
+               <button onClick={logout} className="text-sm text-slate-400 hover:text-white">Sign Out</button></>
