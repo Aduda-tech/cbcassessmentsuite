@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import { getDb, hashPassword, verifyPassword, generateId } from './db.js';
 import { signToken, authMiddleware, adminMiddleware } from './auth.js';
 
@@ -18,6 +19,28 @@ const APP_CONFIG = {
   monthlyPrice: process.env.MONTHLY_PRICE || 'KES 500',
   yearlyPrice: process.env.YEARLY_PRICE || 'KES 5,000',
 };
+
+// ── Notification System ──
+const NOTIFICATION_FILE = process.env.NOTIFICATION_FILE || path.join(__dirname, '..', 'data', 'admin_notifications.json');
+
+function readNotifications() {
+  try { return fs.existsSync(NOTIFICATION_FILE) ? JSON.parse(fs.readFileSync(NOTIFICATION_FILE, 'utf8')) : []; }
+  catch { return []; }
+}
+
+function saveNotifications(list) {
+  const dir = path.dirname(NOTIFICATION_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(NOTIFICATION_FILE, JSON.stringify(list, null, 2), 'utf-8');
+}
+
+function notifyAdmin(event, details) {
+  const notifs = readNotifications();
+  notifs.unshift({ id: 'N_' + Date.now(), event, details, read: false, createdAt: new Date().toISOString() });
+  if (notifs.length > 200) notifs.length = 200;
+  saveNotifications(notifs);
+  console.log('[ADMIN NOTIFY] ' + event + ':', JSON.stringify(details));
+}
 
 // ── Middleware ──
 app.use(express.json());
@@ -40,7 +63,7 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// ── Plans (static — no Stripe) ──
+// ── Plans ──
 app.get('/api/plans', (req, res) => {
   res.json({
     plans: [
@@ -56,21 +79,16 @@ app.post('/api/auth/register', (req, res) => {
     const { email, password, name, schoolName, phone } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
     if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
-
     const db = getDb();
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (existing) return res.status(409).json({ error: 'Account already exists' });
-
     const id = generateId();
     const passwordHash = hashPassword(password);
-    db.prepare(`INSERT INTO users (id, email, password_hash, name, school_name, phone) VALUES (?, ?, ?, ?, ?, ?)`)
+    db.prepare('INSERT INTO users (id, email, password_hash, name, school_name, phone) VALUES (?, ?, ?, ?, ?, ?)')
       .run(id, email.toLowerCase(), passwordHash, name || '', schoolName || '', phone || '');
-
-    // Create pending subscription
     const subId = generateId();
-    db.prepare(`INSERT INTO subscriptions (id, user_id, plan, status) VALUES (?, ?, 'monthly', 'pending')`)
+    db.prepare('INSERT INTO subscriptions (id, user_id, plan, status) VALUES (?, ?, \'monthly\', \'pending\')')
       .run(subId, id);
-
     const token = signToken({ userId: id, email: email.toLowerCase(), role: 'user' });
     res.status(201).json({ token, user: { id, email: email.toLowerCase(), name: name || '', schoolName: schoolName || '' } });
   } catch (err) {
@@ -110,8 +128,6 @@ app.get('/api/auth/me', authMiddleware, (req, res) => {
 });
 
 // ── Subscription / Activation ──
-
-// Submit M-Pesa payment confirmation
 app.post('/api/subscribe', authMiddleware, (req, res) => {
   try {
     const { plan, mpesaCode } = req.body;
@@ -119,53 +135,45 @@ app.post('/api/subscribe', authMiddleware, (req, res) => {
     const db = getDb();
     const sub = db.prepare('SELECT * FROM subscriptions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1').get(req.user.userId);
     if (!sub) return res.status(404).json({ error: 'No subscription found' });
-
-    db.prepare(`UPDATE subscriptions SET plan = ?, mpesa_code = ?, status = 'pending', updated_at = datetime('now') WHERE id = ?`)
+    db.prepare('UPDATE subscriptions SET plan = ?, mpesa_code = ?, status = \'pending\', updated_at = datetime(\'now\') WHERE id = ?')
       .run(plan || sub.plan, mpesaCode, sub.id);
-
-    res.json({ message: 'Payment submitted! Your account will be activated within a few minutes after verification.', status: 'pending' });
+    notifyAdmin('new_payment', { userId: req.user.userId, plan: plan || sub.plan, mpesaCode });
+    res.json({ message: 'Payment submitted! You will be activated within a few minutes.', status: 'pending' });
   } catch (err) {
     console.error('Subscribe:', err);
     res.status(500).json({ error: 'Failed to submit payment' });
   }
 });
 
-// Check subscription status
 app.get('/api/subscription/status', authMiddleware, (req, res) => {
   try {
     const db = getDb();
     const sub = db.prepare('SELECT * FROM subscriptions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1').get(req.user.userId);
-    if (!sub) {
-      return res.json({ hasSubscription: false, isActive: false, plan: null, status: 'none' });
-    }
+    if (!sub) return res.json({ hasSubscription: false, isActive: false, plan: null, status: 'none' });
     const isActive = sub.status === 'active';
     const isExpired = isActive && sub.current_period_end && new Date(sub.current_period_end) < new Date();
     if (isActive && isExpired) {
-      db.prepare("UPDATE subscriptions SET status = 'expired', updated_at = datetime('now') WHERE id = ?").run(sub.id);
+      db.prepare('UPDATE subscriptions SET status = \'expired\', updated_at = datetime(\'now\') WHERE id = ?').run(sub.id);
       return res.json({ hasSubscription: true, isActive: false, plan: sub.plan, status: 'expired' });
     }
-    res.json({ hasSubscription: sub.status !== 'none', isActive, plan: sub.plan, status: sub.status, currentPeriodEnd: sub.current_period_end, mpesaCode: sub.mpesa_code });
+    res.json({ hasSubscription: sub.status !== 'none', isActive, plan: sub.plan, status: sub.status, currentPeriodEnd: sub.current_period_end });
   } catch (err) {
     console.error('Status:', err);
     res.status(500).json({ error: 'Failed to check subscription' });
   }
 });
 
-// Verify access (for paywall)
 app.get('/api/subscription/verify', authMiddleware, (req, res) => {
   try {
     const db = getDb();
     const sub = db.prepare('SELECT * FROM subscriptions WHERE user_id = ? AND status = ? ORDER BY created_at DESC LIMIT 1').get(req.user.userId, 'active');
-    if (!sub) {
-      return res.status(402).json({ error: 'Subscription required', message: 'You need an active subscription to print, download, or share documents.', code: 'SUBSCRIPTION_REQUIRED' });
-    }
+    if (!sub) return res.status(402).json({ error: 'Subscription required', code: 'SUBSCRIPTION_REQUIRED' });
     if (sub.current_period_end && new Date(sub.current_period_end) < new Date()) {
-      db.prepare("UPDATE subscriptions SET status = 'expired', updated_at = datetime('now') WHERE id = ?").run(sub.id);
-      return res.status(402).json({ error: 'Subscription expired', message: 'Your subscription has expired. Please renew.', code: 'SUBSCRIPTION_EXPIRED' });
+      db.prepare('UPDATE subscriptions SET status = \'expired\', updated_at = datetime(\'now\') WHERE id = ?').run(sub.id);
+      return res.status(402).json({ error: 'Subscription expired', code: 'SUBSCRIPTION_EXPIRED' });
     }
     res.json({ valid: true, plan: sub.plan, currentPeriodEnd: sub.current_period_end });
   } catch (err) {
-    console.error('Verify:', err);
     res.status(500).json({ error: 'Failed to verify' });
   }
 });
@@ -174,17 +182,9 @@ app.get('/api/subscription/verify', authMiddleware, (req, res) => {
 app.get('/api/admin/users', adminMiddleware, (req, res) => {
   try {
     const db = getDb();
-    const users = db.prepare(`
-      SELECT u.id, u.email, u.name, u.school_name, u.phone, u.role, u.created_at,
-             s.id as sub_id, s.plan, s.status as sub_status, s.mpesa_code, s.current_period_start, s.current_period_end
-      FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id
-      ORDER BY u.created_at DESC
-    `).all();
+    const users = db.prepare('SELECT u.id, u.email, u.name, u.school_name, u.phone, u.role, u.created_at, s.id as sub_id, s.plan, s.status as sub_status, s.mpesa_code, s.current_period_start, s.current_period_end FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id ORDER BY u.created_at DESC').all();
     res.json({ users });
-  } catch (err) {
-    console.error('Admin users:', err);
-    res.status(500).json({ error: 'Failed' });
-  }
+  } catch (err) { res.status(500).json({ error: 'Failed' }); }
 });
 
 app.post('/api/admin/activate', adminMiddleware, (req, res) => {
@@ -195,21 +195,18 @@ app.post('/api/admin/activate', adminMiddleware, (req, res) => {
     const duration = durationDays || 30;
     const start = new Date().toISOString();
     const end = new Date(Date.now() + duration * 86400000).toISOString();
-
     const sub = db.prepare('SELECT * FROM subscriptions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1').get(userId);
     if (sub) {
-      db.prepare(`UPDATE subscriptions SET plan = ?, status = 'active', current_period_start = ?, current_period_end = ?, admin_notes = ?, activated_by = ?, updated_at = datetime('now') WHERE id = ?`)
+      db.prepare('UPDATE subscriptions SET plan = ?, status = \'active\', current_period_start = ?, current_period_end = ?, admin_notes = ?, activated_by = ?, updated_at = datetime(\'now\') WHERE id = ?')
         .run(plan || sub.plan, start, end, notes || '', req.user.userId, sub.id);
     } else {
       const subId = generateId();
-      db.prepare(`INSERT INTO subscriptions (id, user_id, plan, status, current_period_start, current_period_end, admin_notes, activated_by) VALUES (?, ?, ?, 'active', ?, ?, ?, ?)`)
+      db.prepare('INSERT INTO subscriptions (id, user_id, plan, status, current_period_start, current_period_end, admin_notes, activated_by) VALUES (?, ?, ?, \'active\', ?, ?, ?, ?)')
         .run(subId, userId, plan || 'monthly', start, end, notes || '', req.user.userId);
     }
-    res.json({ message: 'User activated successfully!', expiresAt: end });
-  } catch (err) {
-    console.error('Activate:', err);
-    res.status(500).json({ error: 'Failed' });
-  }
+    notifyAdmin('payment_approved', { userId, plan: plan || sub?.plan, expiresAt: end });
+    res.json({ message: 'User activated!', expiresAt: end });
+  } catch (err) { res.status(500).json({ error: 'Failed' }); }
 });
 
 app.post('/api/admin/deactivate', adminMiddleware, (req, res) => {
@@ -217,11 +214,63 @@ app.post('/api/admin/deactivate', adminMiddleware, (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: 'userId required' });
     const db = getDb();
-    db.prepare("UPDATE subscriptions SET status = 'canceled', updated_at = datetime('now') WHERE user_id = ? AND status = 'active'").run(userId);
+    db.prepare('UPDATE subscriptions SET status = \'canceled\', updated_at = datetime(\'now\') WHERE user_id = ? AND status = \'active\'').run(userId);
     res.json({ message: 'User deactivated' });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed' });
-  }
+  } catch (err) { res.status(500).json({ error: 'Failed' }); }
+});
+
+// Get pending count (public)
+app.get('/api/subscription/pending-count', (req, res) => {
+  try {
+    const db = getDb();
+    const count = db.prepare('SELECT COUNT(*) as cnt FROM subscriptions WHERE status = ?').get('pending')?.cnt || 0;
+    res.json({ pendingCount: count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: list pending payments
+app.post('/api/admin/till-list', authMiddleware, (req, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    const db = getDb();
+    const pending = db.prepare('SELECT u.email, u.name, u.school_name, u.phone, s.id as sub_id, s.plan, s.status, s.mpesa_code, s.created_at FROM subscriptions s JOIN users u ON s.user_id = u.id WHERE s.status = ? AND s.mpesa_code IS NOT NULL ORDER BY s.created_at DESC').all('pending');
+    res.json({ success: true, pending, count: pending.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: approve till payment
+app.post('/api/admin/till-approve', authMiddleware, (req, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    const { subId, durationDays, notes } = req.body;
+    if (!subId) return res.status(400).json({ error: 'subId required' });
+    const db = getDb();
+    const duration = durationDays || 30;
+    const start = new Date().toISOString();
+    const end = new Date(Date.now() + duration * 86400000).toISOString();
+    db.prepare('UPDATE subscriptions SET status = ?, current_period_start = ?, current_period_end = ?, admin_notes = ?, activated_by = ?, updated_at = datetime(\'now\') WHERE id = ?')
+      .run('active', start, end, notes || '', req.user.userId, subId);
+    const sub = db.prepare('SELECT u.name, u.email, u.school_name FROM subscriptions s JOIN users u ON s.user_id = u.id WHERE s.id = ?').get(subId);
+    notifyAdmin('payment_approved', { subId, schoolName: sub?.school_name, email: sub?.email });
+    res.json({ success: true, message: 'Approved! License issued.', expiresAt: end });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: notifications
+app.get('/api/admin/notifications', authMiddleware, (req, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    res.json({ success: true, notifications: readNotifications() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/notifications-read', authMiddleware, (req, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    const notifs = readNotifications().map(n => ({ ...n, read: true }));
+    saveNotifications(notifs);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── Serve React SPA ──
@@ -233,6 +282,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ CBC Assessment Suite running on port ${PORT}`);
-  console.log(`   API: http://localhost:${PORT}/api`);
+  console.log('✅ CBC Assessment Suite running on port ' + PORT + '\n   API: http://localhost:' + PORT + '/api');
 });

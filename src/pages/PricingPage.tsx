@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { FileSpreadsheet, Check, ArrowRight, Smartphone, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
 
@@ -9,8 +9,16 @@ export function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-
+  const [pendingCount, setPendingCount] = useState(0);
   const tillNumber = appConfig?.mpesaTillNumber || '123456';
+
+  useEffect(() => {
+    fetch('/api/subscription/pending-count')
+      .then(r => r.json())
+      .then(d => setPendingCount(d.pendingCount || 0))
+      .catch(() => {});
+  }, []);
+
   const adminPhone = appConfig?.adminPhone || '0725924995';
 
   const plans = [
@@ -42,6 +50,11 @@ export function PricingPage() {
             <div><h1 className="text-lg font-bold text-white">Aduda-Tech</h1><p className="text-xs text-slate-400">CBC Assessment Suite</p></div>
           </div>
           <div className="flex items-center gap-3">
+            {pendingCount > 0 && (
+              <span className="px-2.5 py-1 rounded-full bg-rose-600 text-white text-[10px] font-bold animate-pulse">
+                {pendingCount} pending
+              </span>
+            )}
             {isAuthenticated ? (
               <><a href="/app" className="text-sm text-slate-300 hover:text-white font-medium">Dashboard</a>
               <button onClick={logout} className="text-sm text-slate-400 hover:text-white">Sign Out</button></>
@@ -61,7 +74,6 @@ export function PricingPage() {
           </p>
         </div>
 
-        {/* Plan Selector */}
         <div className="flex justify-center gap-3 mb-10">
           {plans.map(p => (
             <button key={p.id} onClick={() => setSelectedPlan(p.id)}
@@ -72,7 +84,6 @@ export function PricingPage() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* Left: M-Pesa Instructions */}
           <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
               <Smartphone className="w-5 h-5 text-emerald-400" />
@@ -81,7 +92,7 @@ export function PricingPage() {
             <ol className="space-y-4 text-sm text-slate-300">
               <li className="flex gap-3">
                 <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center shrink-0 text-xs">1</span>
-                <span>Go to <strong className="text-white">Lipa Na M-Pesa</strong> → <strong className="text-white">Buy Goods & Services</strong></span>
+                <span>Go to <strong className="text-white">Lipa Na M-Pesa → Buy Goods & Services</strong></span>
               </li>
               <li className="flex gap-3">
                 <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center shrink-0 text-xs">2</span>
@@ -106,7 +117,6 @@ export function PricingPage() {
             </div>
           </div>
 
-          {/* Right: Submit M-Pesa Code */}
           <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-6">
             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
@@ -143,7 +153,6 @@ export function PricingPage() {
           </div>
         </div>
 
-        {/* Features */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-3xl mx-auto mt-12">
           {[
             'Print report cards (A4)', 'Download Excel & CSV', 'AI Pedagogical Advisor',
